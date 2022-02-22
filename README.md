@@ -9,7 +9,11 @@
 
     $ git clone git@github.com:BoyanGeorgiev96/track-nps.git
 
+    $ bundle install
+
     $ rails db:setup
+
+The database setup will seed it with minimal working examples. A realtor, seller, property and a deal will be created.
 
 ## Running the server and sending requests
 Start the server by executing the following command in the terminal:
@@ -60,6 +64,8 @@ Inside the project directory run:
 
 The test suite is comprised of 14 tests that cover all the functionalities of the survey_controller.
 
+Database records for all use cases are added to the test database using Factories.
+
 ## Miscellaneous
 
-Code comments can be inspected to understand more about the request handling.
+Code comments inside surveys_controller.rb can be inspected to understand more about the request handling.
