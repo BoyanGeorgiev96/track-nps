@@ -125,7 +125,7 @@ describe 'Request API', type: :request do
       get '/touchpoint', params: { touchpoint: 'non_existent_feedback' }
 
       expect(response).to have_http_status(:success)
-      expect(JSON.parse(response.body)['deal_feedback']).to be nil
+      expect(JSON.parse(response.body)['touchpoints']).to be nil
     end
   end
 end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# some comments
+# Controller for handling the POST /survey and GET /touchpoint requests
 class SurveysController < ApplicationController
   before_action :survey_params, only: :survey
   before_action :touchpoint_params, only: :touchpoint
@@ -8,17 +8,18 @@ class SurveysController < ApplicationController
   class InvalidScore < StandardError; end
   class DataIntegrityError < StandardError; end
 
+  # POST /survey
   def survey
     handle_survey_exception do
       # The range could be expressed via model validations but the score is converted using Integer to make sure it's a whole number.
       # The error raised by Integer will precede the ActiveRecord validations as the API does not need to continue unless a valid score is given
       raise InvalidScore unless (1..10).include? Integer(params[:score])
-      # Check if respondent and object classes exist, i.e. are accepted
+      # Check if respondent and object classes exist, i.e. are accepted by the request
       respondent_survey_klass = valid_respondent_class
       valid_object?
       existing_survey = find_existing_survey
       if existing_survey
-        update_survey(existing_survey)
+        update_survey_score(existing_survey)
       else
         create_new_survey(respondent_survey_klass)
       end
@@ -31,6 +32,8 @@ class SurveysController < ApplicationController
   end
 
   def find_existing_survey
+    # Convert the respondent_class param to a symbol used for the join query
+    # The method uses the respondent_class linked table to determine whether such a survey exists
     respondent_join_sym = "#{params[:respondent_class].downcase}_surveys".to_sym
     Survey.joins(respondent_join_sym).where(respondent_id: params[:respondent_id].to_i,
                                             object_id: params[:object_id].to_i,
@@ -38,7 +41,7 @@ class SurveysController < ApplicationController
                                             object_class: params[:object_class])[0]
   end
 
-  def update_survey(survey)
+  def update_survey_score(survey)
     survey.score = Integer(params[:score])
     survey.save!
     render json: { "success": 'Survey response updated',
@@ -46,6 +49,8 @@ class SurveysController < ApplicationController
   end
 
   def create_new_survey(respondent_klass)
+    # Use a transaction to create the Survey AND the linked RespondentClassSurvey records
+    # Roll back the record creation if one of the two fails
     ActiveRecord::Base.transaction do
       survey = Survey.new(touchpoint: params[:touchpoint], respondent_id: params[:respondent_id].to_i,
                           respondent_class: params[:respondent_class], object_id: params[:object_id],
@@ -59,16 +64,21 @@ class SurveysController < ApplicationController
   end
 
   def valid_object?
+    # If the object is not valid an ActiveRecord::RecordNotFound exception will be raised
+    # The exception is handled in the handle_survey_exception function and 404 is returned with a useful error message
+    raise NameError unless %w(deal realtor property).include? params[:object_class].downcase
     params[:object_class].capitalize.constantize.find(params[:object_id])
     true
   end
 
+  # GET /touchpoint
   def touchpoint
     touchpoints = find_touchpoints
     touchpoint_response(touchpoints)
   end
 
   def find_touchpoints
+    # Either use the respondent/object classes from params or accept all possible respondent/object classes
     respondent_class = params[:respondent_class] || %w[realtor seller]
     object_class = params[:object_class] || %w[realtor deal property]
     Survey.where(touchpoint: params[:touchpoint], respondent_class:, object_class:)
@@ -76,6 +86,7 @@ class SurveysController < ApplicationController
 
   def touchpoint_response(touchpoints)
     if touchpoints.empty?
+      # 200 OK returned as no client error has been encountered, just no touchpoints found
       render json: { "touchpoints": nil,
                      "message": 'No such touchpoints exist.',
                      "requested_touchpoint": params[:touchpoint] }
@@ -144,9 +155,11 @@ class SurveysController < ApplicationController
   end
 
   # Match only alphanumeric characters and underscores!
+  # This can be changed if other query params and values are allowed but currently this is the safest!
+  # This method will prevent params such as 'realtor; drop table surveys; to be passed
+  # The calls to ActiveRecord, e.g. joins, where, will sanitize the input even if this method does not exist
+  # but with the method we can send a useful(?) error message
   def check_data_integrity
-    params.each do |_, v|
-      raise DataIntegrityError unless v.match('^[a-zA-Z0-9_]*$')
-    end
+    params.each { |_, v| raise DataIntegrityError unless v.match('^[a-zA-Z0-9_]*$') }
   end
 end
