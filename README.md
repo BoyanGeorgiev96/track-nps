@@ -7,14 +7,14 @@
 
 ## Project initialization
 
-  $ git clone git@github.com:BoyanGeorgiev96/track-nps.git
+    $ git clone git@github.com:BoyanGeorgiev96/track-nps.git
 
-  $ rails db:setup
+    $ rails db:setup
 
 ## Running the server and sending requests
 Start the server by executing the following command in the terminal:
 
-  $ rails server
+    $ rails server
 
 A piece of software such as [https://www.postman.com](Postman) with the default headers can be used to send requests to the API.
 
@@ -45,7 +45,7 @@ object_class - String - realtor, deal, property
 ## Tests
 Inside the project directory run:
 
-  $ rspec
+    $ rspec
 
 The test suite is comprised of 14 tests that cover all the functionalities of the survey_controller.
 
