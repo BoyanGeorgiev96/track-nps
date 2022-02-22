@@ -16,7 +16,7 @@ Start the server by executing the following command in the terminal:
 
     $ rails server
 
-A piece of software such as [https://www.postman.com](Postman) with the default headers can be used to send requests to the API.
+A piece of software such as [Postman](https://www.postman.com) with the default headers can be used to send requests to the API.
 
 ### POST /survey endpoint
 
